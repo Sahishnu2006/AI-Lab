@@ -1,88 +1,79 @@
-        # Base Cases: Evaluate terminal states
-        if self.check_winner(board, self.ai):
-            return {'position': None, 'score': 10 - depth}
-        elif self.check_winner(board, self.human):
-            return {'position': None, 'score': depth - 10}
-        elif not self.empty_squares():
-            return {'position': None, 'score': 0}
+# Lab Experiment: Minimax Algorithm for Tic-Tac-Toe
+import math
 
-        if is_maximizing:
-            best = {'position': None, 'score': -math.inf}
-            for possible_move in self.available_moves():
-                # Make move
-                board[possible_move] = self.ai
-                # Recurse
-                sim_score = self.minimax(board, depth + 1, False)
-                # Undo move
-                board[possible_move] = ' '
-                sim_score['position'] = possible_move
+# Step 1: Auxiliary Functions
+def check_winner(board, player):
+    win_states = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], # Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], # Columns
+        [0, 4, 8], [2, 4, 6]             # Diagonals
+    ]
+    return any(all(board[i] == player for i in line) for line in win_states)
 
-                if sim_score['score'] > best['score']:
-                    best = sim_score
-            return best
-        else:
-            best = {'position': None, 'score': math.inf}
-            for possible_move in self.available_moves():
-                # Make move
-                board[possible_move] = self.human
-                # Recurse
-                sim_score = self.minimax(board, depth + 1, True)
-                # Undo move
-                board[possible_move] = ' '
-                sim_score['position'] = possible_move
+def available_moves(board):
+    return [i for i, cell in enumerate(board) if cell == ' ']
 
-                if sim_score['score'] < best['score']:
-                    best = sim_score
-            return best
+# Step 2: Minimax Core Engine
+def minimax(board, depth, is_maximizing):
+    if check_winner(board, 'X'): return 10 - depth
+    if check_winner(board, 'O'): return depth - 10
+    if not available_moves(board): return 0
 
-    def play(self):
-        """Main game loop."""
-        print("--- Welcome to Tic-Tac-Toe AI ---")
-        print("Board Index Reference:")
-        print(" 0 | 1 | 2 ")
-        print("---|---|---")
-        print(" 3 | 4 | 5 ")
-        print("---|---|---")
-        print(" 6 | 7 | 8 \n")
+    if is_maximizing:
+        best_score = -math.inf
+        for move in available_moves(board):
+            board[move] = 'X'
+            score = minimax(board, depth + 1, False)
+            board[move] = ' '
+            best_score = max(best_score, score)
+        return best_score
+    else:
+        best_score = math.inf
+        for move in available_moves(board):
+            board[move] = 'O'
+            score = minimax(board, depth + 1, True)
+            board[move] = ' '
+            best_score = min(best_score, score)
+        return best_score
 
-        # Human plays 'O', AI plays 'X'
-        turn = 'O'  # Human goes first
+# Step 3: Best Move Selector for AI
+def find_best_move(board):
+    best_val = -math.inf
+    best_move = -1
+    for move in available_moves(board):
+        board[move] = 'X'
+        move_val = minimax(board, 0, False)
+        board[move] = ' '
+        if move_val > best_val:
+            best_val = move_val
+            best_move = move
+    return best_move
 
-        while self.empty_squares():
-            if turn == self.human:
-                self.print_board()
-                try:
-                    move = int(input("Enter your move (0-8): "))
-                    if move not in self.available_moves():
-                        print("Invalid move. Try again.")
-                        continue
-                except ValueError:
-                    print("Please enter a valid number between 0 and 8.")
-                    continue
+# Step 4: Driver / Execution Loop
+def print_board(b):
+    for i in range(0, 9, 3):
+        print(f" {b[i]} | {b[i+1]} | {b[i+2]} ")
+        if i < 6: print("---|---|---")
+    print()
 
-                self.board[move] = self.human
+board = [' '] * 9
+print("Initial Board Indexes: 0 to 8")
 
-                if self.check_winner(self.board, self.human):
-                    self.print_board()
-                    print("Congratulations! You won!")
-                    return
-                turn = self.ai
+while available_moves(board) and not check_winner(board, 'X') and not check_winner(board, 'O'):
+    print_board(board)
+    user_move = int(input("Enter position (0-8): "))
+    if board[user_move] != ' ':
+        print("Invalid move, try again!")
+        continue
+    board[user_move] = 'O'
+    
+    if check_winner(board, 'O') or not available_moves(board):
+        break
 
-            else:
-                print("AI is thinking...")
-                move = self.minimax(self.board, 0, True)['position']
-                self.board[move] = self.ai
+    ai_move = find_best_move(board)
+    board[ai_move] = 'X'
 
-                if self.check_winner(self.board, self.ai):
-                    self.print_board()
-                    print("AI wins! Better luck next time.")
-                    return
-                turn = self.human
-
-        self.print_board()
-        print("It's a draw!")
-
-# Run the game in Colab
-if __name__ == '__main__':
-    game = TicTacToe()
-    game.play()
+print_board(board)
+if check_winner(board, 'X'): print("Result: AI (X) Wins!")
+elif check_winner(board, 'O'): print("Result: Human (O) Wins!")
+else: print("Result: Draw Game!")
