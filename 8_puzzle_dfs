@@ -1,0 +1,117 @@
+import copy
+
+GOAL_STATE = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 0]  # 0 represents the empty tile
+]
+
+def find_zero(board):
+    """Find the (row, col) position of the empty space (0)."""
+    for r in range(3):
+        for c in range(3):
+            if board[r][c] == 0:
+                return r, c
+
+def get_neighbors(state):
+    """Generate all valid next states from the current state."""
+    r, c = find_zero(state)
+    moves = [(-1, 0, "UP"), (1, 0, "DOWN"), (0, -1, "LEFT"), (0, 1, "RIGHT")]
+    neighbors = []
+
+    for dr, dc, move_name in moves:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < 3 and 0 <= nc < 3:
+            new_board = copy.deepcopy(state)
+            new_board[r][c], new_board[nr][nc] = new_board[nr][nc], new_board[r][c]
+            neighbors.append((new_board, move_name))
+            
+    return neighbors
+
+def dfs_8_puzzle(initial_state, max_depth=30):
+    """
+    Solves 8-puzzle using DFS.
+    Stores (current_state, path_of_moves, path_of_boards) in the stack.
+    """
+    # Stack stores: (current_state, moves_list, board_history_list)
+    stack = [(initial_state, [], [initial_state])]
+    visited = set()
+
+    while stack:
+        current_state, moves, history = stack.pop()
+        state_tuple = tuple(tuple(row) for row in current_state)
+
+        if current_state == GOAL_STATE:
+            return moves, history
+
+        if state_tuple not in visited:
+            visited.add(state_tuple)
+
+            if len(moves) < max_depth:
+                for neighbor, move in get_neighbors(current_state):
+                    neighbor_tuple = tuple(tuple(row) for row in neighbor)
+                    if neighbor_tuple not in visited:
+                        stack.append((
+                            neighbor, 
+                            moves + [move], 
+                            history + [neighbor]
+                        ))
+
+    return None, None
+
+def print_board(board):
+    """Prints a 3x3 board in a formatted grid."""
+    print("+---+---+---+")
+    for row in board:
+        row_str = "| " + " | ".join(str(val) if val != 0 else " " for val in row) + " |"
+        print(row_str)
+        print("+---+---+---+")
+
+def get_user_input():
+    """Takes 9 space-separated numbers from the user and constructs a 3x3 board."""
+    print("Enter 9 numbers (0-8) separated by spaces for the 3x3 board.")
+    print("Use '0' to represent the empty tile (e.g., '1 2 3 4 0 6 7 5 8'):")
+    
+    while True:
+        try:
+            raw_input = input(">> ").strip().split()
+            nums = [int(x) for x in raw_input]
+
+            if len(nums) != 9:
+                print("Error: Please enter exactly 9 numbers.\n")
+                continue
+
+            if sorted(nums) != list(range(9)):
+                print("Error: Numbers must contain all digits from 0 to 8 without duplicates.\n")
+                continue
+
+            # Reshape 1D list of 9 elements into 3x3 2D list
+            board = [nums[i:i + 3] for i in range(0, 9, 3)]
+            return board
+
+        except ValueError:
+            print("Error: Invalid input! Please enter integers only.\n")
+
+# --- Execution Flow ---
+if __name__ == "__main__":
+    initial_board = get_user_input()
+
+    print("\nInitial State:")
+    print_board(initial_board)
+
+    print("Searching for solution using DFS...\n")
+    moves, history = dfs_8_puzzle(initial_board, max_depth=20)
+
+    if moves is not None:
+        print(f"Goal state reached in {len(moves)} move(s)!\n")
+        print("================ STEP-BY-STEP SOLUTION ================\n")
+        
+        # Display each step with move name and resulting board state
+        for idx, (board, move) in enumerate(zip(history[1:], moves), start=1):
+            print(f"Step {idx}: Move blank space {move}")
+            print_board(board)
+            print()
+            
+        print("Puzzle Solved!")
+    else:
+        print("No solution found within the maximum depth limit.")
