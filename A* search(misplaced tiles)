@@ -1,0 +1,95 @@
+import heapq
+
+# Initial and Goal states for 8-puzzle
+INITIAL_STATE = (
+    (2, 8, 3),
+    (1, 6, 4),
+    (7, 0, 5)  # 0 represents the blank space
+)
+
+GOAL_STATE = (
+    (1, 2, 3),
+    (8, 0, 4),
+    (7, 6, 5)
+)
+
+def find_position(state, tile):
+    """Find coordinates (row, col) of a tile in a given board state."""
+    for r in range(3):
+        for c in range(3):
+            if state[r][c] == tile:
+                return (r, c)
+
+def misplaced_tiles(state, goal=GOAL_STATE):
+    """Case 1 Heuristic: Count of misplaced non-blank tiles."""
+    count = 0
+    for r in range(3):
+        for c in range(3):
+            val = state[r][c]
+            if val != 0 and val != goal[r][c]:
+                count += 1
+    return count
+
+def get_neighbors(state):
+    """Generates next valid states by sliding the blank space (0)."""
+    neighbors = []
+    r, c = find_position(state, 0)
+    moves = [(-1, 0, "Up"), (1, 0, "Down"), (0, -1, "Left"), (0, 1, "Right")]
+    
+    for dr, dc, move_name in moves:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < 3 and 0 <= nc < 3:
+            new_state = [list(row) for row in state]
+            new_state[r][c], new_state[nr][nc] = new_state[nr][nc], new_state[r][c]
+            neighbors.append((tuple(tuple(row) for row in new_state), move_name))
+            
+    return neighbors
+
+def a_star_misplaced(initial_state):
+    open_set = []
+    initial_h = misplaced_tiles(initial_state)
+    heapq.heappush(open_set, (0 + initial_h, 0, initial_state, []))
+    visited = set()
+    
+    while open_set:
+        f, g, current_state, path = heapq.heappop(open_set)
+        
+        if current_state in visited:
+            continue
+            
+        visited.add(current_state)
+        
+        if current_state == GOAL_STATE:
+            return path + [(current_state, "Goal", g, 0, f)], len(visited)
+            
+        for neighbor, move in get_neighbors(current_state):
+            if neighbor not in visited:
+                new_g = g + 1
+                h = misplaced_tiles(neighbor)
+                new_f = new_g + h
+                heapq.heappush(open_set, (new_f, new_g, neighbor, path + [(current_state, move, g, h, f)]))
+                
+    return None, len(visited)
+
+# --- Execute Case 1 ---
+path, visited_count = a_star_misplaced(INITIAL_STATE)
+
+print("=" * 55)
+print(" CASE 1: A* SEARCH WITH MISPLACED TILES HEURISTIC")
+print("=" * 55)
+
+for step, (state, move, g, h, f) in enumerate(path):
+    if step == 0:
+        print(f"Step {step}: START STATE (g={g}, h={h}, f={f})")
+    elif move == "Goal":
+        print(f"Step {step}: REACHED GOAL! (g={g}, h={h}, f={f})")
+    else:
+        print(f"Step {step}: Move Blank '{move}' -> (g={g}, h={h}, f={f})")
+        
+    for row in state:
+        row_str = " ".join(str(cell) if cell != 0 else "_" for cell in row)
+        print(f"  [ {row_str} ]")
+    print()
+
+print(f"Total Steps to Goal: {len(path) - 1}")
+print(f"Total States Explored (Nodes Visited): {visited_count}")
