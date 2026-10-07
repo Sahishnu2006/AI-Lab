@@ -1,0 +1,122 @@
+import heapq
+
+def parse_state(input_str):
+    """Parses a 9-digit string or 3x3 spaced numbers into a tuple of tuples."""
+    # Remove spaces/newlines and filter digits
+    digits = [int(x) if x != '_' else 0 for x in input_str.replace('\n', ' ').split() if x != '']
+    if len(digits) != 9:
+        # Try parsing without spaces if 9 characters are given
+        cleaned = ''.join(c for c in input_str if c.isdigit() or c == '_')
+        if len(cleaned) == 9:
+            digits = [int(c) if c != '_' else 0 for c in cleaned]
+    
+    if len(digits) != 9:
+        raise ValueError("State must contain exactly 9 elements (use 0 or _ for blank space).")
+    return (
+        tuple(digits[0:3]),
+        tuple(digits[3:6]),
+        tuple(digits[6:9])
+    )
+
+# --- Get User Input ---
+try:
+    print("Enter states as 9 space-separated numbers (0 or _ representing the blank).")
+    print("Example: 2 8 3 1 6 4 7 0 5")
+    
+    init_input = input("Enter Initial State: ").strip() or "2 8 3 1 6 4 7 0 5"
+    INITIAL_STATE = parse_state(init_input)
+    
+    goal_input = input("Enter Goal State: ").strip() or "1 2 3 8 0 4 7 6 5"
+    GOAL_STATE = parse_state(goal_input)
+    
+    print(f"\nParsed Initial State: {INITIAL_STATE}")
+    print(f"Parsed Goal State: {GOAL_STATE}\n")
+except Exception as e:
+    print(f"Error parsing input: {e}. Falling back to default states.")
+    INITIAL_STATE = ((2, 8, 3), (1, 6, 4), (7, 0, 5))
+    GOAL_STATE = ((1, 2, 3), (8, 0, 4), (7, 6, 5))
+
+def find_position(state, tile):
+    """Find coordinates (row, col) of a tile in a given board state."""
+    for r in range(3):
+        for c in range(3):
+            if state[r][c] == tile:
+                return (r, c)
+
+def manhattan_distance(state, goal=GOAL_STATE):
+    """Case 2 Heuristic: Sum of Manhattan distances (|x1 - x2| + |y1 - y2|)."""
+    distance = 0
+    for r in range(3):
+        for c in range(3):
+            val = state[r][c]
+            if val != 0:
+                goal_r, goal_c = find_position(goal, val)
+                distance += abs(r - goal_r) + abs(c - goal_c)
+    return distance
+
+def get_neighbors(state):
+    """Generates next valid states by sliding the blank space (0)."""
+    neighbors = []
+    r, c = find_position(state, 0)
+    moves = [(-1, 0, "Up"), (1, 0, "Down"), (0, -1, "Left"), (0, 1, "Right")]
+    
+    for dr, dc, move_name in moves:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < 3 and 0 <= nc < 3:
+            new_state = [list(row) for row in state]
+            new_state[r][c], new_state[nr][nc] = new_state[nr][nc], new_state[r][c]
+            neighbors.append((tuple(tuple(row) for row in new_state), move_name))
+            
+    return neighbors
+
+def a_star_manhattan(initial_state):
+    open_set = []
+    initial_h = manhattan_distance(initial_state)
+    heapq.heappush(open_set, (0 + initial_h, 0, initial_state, []))
+    visited = set()
+    
+    while open_set:
+        f, g, current_state, path = heapq.heappop(open_set)
+        
+        if current_state in visited:
+            continue
+            
+        visited.add(current_state)
+        
+        if current_state == GOAL_STATE:
+            return path + [(current_state, "Goal", g, 0, f)], len(visited)
+            
+        for neighbor, move in get_neighbors(current_state):
+            if neighbor not in visited:
+                new_g = g + 1
+                h = manhattan_distance(neighbor)
+                new_f = new_g + h
+                heapq.heappush(open_set, (new_f, new_g, neighbor, path + [(current_state, move, g, h, f)]))
+                
+    return None, len(visited)
+
+# --- Execute Case 2 ---
+path, visited_count = a_star_manhattan(INITIAL_STATE)
+
+if path is None:
+    print("No solution found.")
+else:
+    print("=" * 55)
+    print(" CASE 2: A* SEARCH WITH MANHATTAN DISTANCE HEURISTIC")
+    print("=" * 55)
+
+    for step, (state, move, g, h, f) in enumerate(path):
+        if step == 0:
+            print(f"Step {step}: START STATE (g={g}, h={h}, f={f})")
+        elif move == "Goal":
+            print(f"Step {step}: REACHED GOAL! (g={g}, h={h}, f={f})")
+        else: 
+            print(f"Step {step}: Move Blank '{move}' -> (g={g}, h={h}, f={f})")
+            
+        for row in state:
+            row_str = " ".join(str(cell) if cell != 0 else "_" for cell in row)
+            print(f"  [ {row_str} ]")
+        print()
+
+    print(f"Total Steps to Goal: {len(path) - 1}")
+    print(f"Total States Explored (Nodes Visited): {visited_count}")
