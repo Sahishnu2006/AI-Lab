@@ -1,0 +1,84 @@
+import itertools
+
+def calculate_cost(state):
+    """Calculates the number of attacking pairs of queens."""
+    cost = 0
+    n = len(state)
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Check row attack
+            if state[i] == state[j]:
+                cost += 1
+            # Check diagonal attack
+            elif abs(state[i] - state[j]) == abs(i - j):
+                cost += 1
+    return cost
+
+def print_board(state):
+    """Prints a simple 4x4 visual representation of the board."""
+    n = len(state)
+    for r in range(n):
+        row_str = ""
+        for c in range(n):
+            if state[c] == r:
+                row_str += "| Q "
+            else:
+                row_str += "| . "
+        row_str += "|"
+        print(row_str)
+    print()
+
+def hill_climbing_4_queens(initial_state):
+    current_state = list(initial_state)
+    current_cost = calculate_cost(current_state)
+    step = 0
+
+    print("====================================================")
+    print("      HILL CLIMBING 4-QUEENS SEARCH TRACE          ")
+    print("====================================================\n")
+
+    while True:
+        print(f"--- STEP {step} ---")
+        print(f"Current Board State: {current_state}")
+        print(f"Attacking Pairs (Cost): {current_cost}")
+        print_board(current_state)
+
+        if current_cost == 0:
+            print(">>> SUCCESS: Goal State Reached (0 attacking pairs)! <<<\n")
+            break
+
+        # Generate all valid swapping neighbors
+        neighbors = []
+        n = len(current_state)
+        
+        # Iterating (i, j) in lexicographical order automatically enforces the tie-breaker
+        for i in range(n):
+            for j in range(i + 1, n):
+                neighbor_state = list(current_state)
+                neighbor_state[i], neighbor_state[j] = neighbor_state[j], neighbor_state[i]
+                cost = calculate_cost(neighbor_state)
+                neighbors.append((i, j, neighbor_state, cost))
+
+        print("Generated Neighbors (Swaps & Costs):")
+        for i, j, state, cost in neighbors:
+            print(f"  Swap (x{i}, x{j}) -> State: {state} | Cost: {cost}")
+
+        # Find the neighbor with the minimum cost
+        # Python's min() preserves the first encountered element in case of ties
+        best_i, best_j, best_neighbor, best_cost = min(neighbors, key=lambda x: x[3])
+
+        print(f"\nBest Neighbor Chosen: Swap (x{best_i}, x{best_j}) -> {best_neighbor} with Cost = {best_cost}")
+
+        # Check stopping condition (Hill Climbing step)
+        if best_cost >= current_cost:
+            print("\n>>> STOP: Best neighbor does not improve cost (Local Optimum / Plateau). <<<\n")
+            break
+        else:
+            current_state = best_neighbor
+            current_cost = best_cost
+            step += 1
+            print("-" * 52 + "\n")
+
+# Run algorithm with the required initial state
+initial_state = [3, 1, 2, 0]
+hill_climbing_4_queens(initial_state)
