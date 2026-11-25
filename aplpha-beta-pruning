@@ -1,0 +1,87 @@
+
+# Alpha-Beta Pruning Implementation
+
+# Game tree
+tree = [
+    [
+        [10, 9],
+        [14, 18]
+    ],
+    [
+        [5, 4],
+        [50, 3]
+    ]
+]
+
+visited = []
+pruned = []
+
+def get_leaves(node):
+    if isinstance(node, int):
+        return [node]
+
+    result = []
+    for child in node:
+        result.extend(get_leaves(child))
+    return result
+
+
+def alpha_beta(node, alpha, beta, maximizing):
+    
+    # If leaf node is reached
+    if isinstance(node, int):
+        visited.append(node)
+        print("Visited leaf:", node)
+        return node
+
+    if maximizing:
+        value = float('-inf')
+
+        for i, child in enumerate(node):
+            result = alpha_beta(child, alpha, beta, False)
+            value = max(value, result)
+            alpha = max(alpha, value)
+
+            # Pruning condition
+            if alpha >= beta:
+                for remaining in node[i+1:]:
+                    pruned.extend(get_leaves(remaining))
+                print("Pruned:", get_leaves(node[i+1:]))
+                break
+
+        return value
+
+    else:
+        value = float('inf')
+
+        for i, child in enumerate(node):
+            result = alpha_beta(child, alpha, beta, True)
+            value = min(value, result)
+            beta = min(beta, value)
+
+            # Pruning condition
+            if alpha >= beta:
+                for remaining in node[i+1:]:
+                    pruned.extend(get_leaves(remaining))
+                print("Pruned:", get_leaves(node[i+1:]))
+                break
+
+        return value
+
+
+# Execute Alpha-Beta Pruning
+print("ALPHA-BETA PRUNING")
+print("------------------")
+
+root_value = alpha_beta(
+    tree,
+    float('-inf'),
+    float('inf'),
+    True
+)
+
+print("\nRoot Node Value:", root_value)
+print("Visited Leaves:", visited)
+print("Pruned Leaves:", pruned)
+
+print("Optimal Path: Root -> Left -> Left -> 10")
