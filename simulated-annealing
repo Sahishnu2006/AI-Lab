@@ -1,0 +1,107 @@
+
+import random
+import math
+
+# Function to calculate conflicts
+def calculate_cost(state):
+    conflicts = 0
+
+    for i in range(8):
+        for j in range(i + 1, 8):
+
+            # Check same row or diagonal
+            if (state[i] == state[j] or
+                abs(state[i] - state[j]) == abs(i - j)):
+
+                conflicts += 1
+
+    return conflicts
+
+
+# Generate a neighbouring state
+def get_neighbor(state):
+    new_state = state.copy()
+
+    # Select random column
+    col = random.randrange(8)
+
+    # Select a different row
+    row = random.randrange(7)
+
+    if row >= new_state[col]:
+        row += 1
+
+    new_state[col] = row
+
+    return new_state
+
+
+# Simulated Annealing algorithm
+def simulated_annealing():
+
+    random.seed(10)
+
+    # Step 1: Initial random state
+    current = [random.randrange(8) for _ in range(8)]
+
+    # Step 2: Initial temperature
+    T = 100.0
+
+    cooling_rate = 0.995
+    iterations = 0
+
+    print("Initial State:", current)
+    print("Initial Cost:", calculate_cost(current))
+
+    # Step 3: Repeat until temperature is low
+    while T > 0.01:
+
+        # Stop if solution is found
+        if calculate_cost(current) == 0:
+            break
+
+        # Step 4: Generate next state
+        next_state = get_neighbor(current)
+
+        # Step 5: Calculate energy difference
+        delta_E = (calculate_cost(current) -
+                   calculate_cost(next_state))
+
+        # Step 6 and 7: Accept better state
+        if delta_E > 0:
+            current = next_state
+
+        # Step 8 and 9: Accept worse state probabilistically
+        else:
+            probability = math.exp(delta_E / T)
+
+            if random.random() < probability:
+                current = next_state
+
+        # Step 11: Decrease temperature
+        T = T * cooling_rate
+
+        iterations += 1
+
+    return current, iterations
+
+
+# Main program
+solution, iterations = simulated_annealing()
+
+print("\nFinal Solution:", solution)
+print("Final Cost:", calculate_cost(solution))
+print("Iterations:", iterations)
+
+# Display the chessboard
+print("\nChessboard:")
+
+for row in range(8):
+    for col in range(8):
+
+        if solution[col] == row:
+            print("Q", end=" ")
+        else:
+            print("-", end=" ")
+
+    print()
